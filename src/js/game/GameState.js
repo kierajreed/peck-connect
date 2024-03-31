@@ -138,13 +138,12 @@ class GameState {
 			this.stage == GameState.STAGE_SEQUENCES;
 	}
 	isNextEnabled() {
-		if (this.substage == GameState.SUBSTAGE_CHOOSE)
+		if (this.substage == GameState.SUBSTAGE_CHOOSE || this.stage == GameState.STAGE_VOWELS)
 			return true;
-		if (this.stage == GameState.STAGE_VOWELS)
-			return (this.puzzleIndex < this.game.vowels.length - 1) ||
-				(this.clueIndex < 3);
 		if (this.stage == GameState.STAGE_SEQUENCES)
 			return this.clueIndex < 2;
+		if (this.stage == GameState.STAGE_GAMEOVER)
+			return false;
 		return this.clueIndex < 3;
 	}
 	isPrevEnabled() {
@@ -156,10 +155,13 @@ class GameState {
 		if (this.stage == GameState.STAGE_VOWELS)
 			return !(this.substage == GameState.SUBSTAGE_VOWELS_CATEGORY &&
 				this.puzzleIndex == 0);
+		if (this.stage == GameState.STAGE_GAMEOVER)
+			return false;
 		return this.clueIndex != 0;
 	}
 	isBackEnabled() {
-		return this.substage != GameState.SUBSTAGE_CHOOSE;
+		return this.substage != GameState.SUBSTAGE_CHOOSE &&
+			this.stage != GameState.STAGE_GAMEOVER;
 	}
 	isRevealEnabled() {
 		return this.substage != GameState.SUBSTAGE_CHOOSE &&
@@ -176,6 +178,8 @@ class GameState {
 		if (this.stage == GameState.STAGE_VOWELS)
 			return this.substage == GameState.SUBSTAGE_BUZZED ||
 				this.substage == GameState.SUBSTAGE_SECONDARY;
+		if (this.stage == GameState.STAGE_GAMEOVER)
+			return true;
 		console.error(`unrecognized stage ${this.stage}`);
 		return false;
 	}
@@ -189,6 +193,10 @@ class GameState {
 			return update(this, {
 				stage: { $set: stage }
 			}).getStartRound(0);
+		if (stage == GameState.STAGE_GAMEOVER)
+			return update(this, {
+				stage: { $set: stage }
+			});
 		return update(this.getResetMicro(0), {
 			stage: { $set: stage },
 			substage: { $set: GameState.SUBSTAGE_CHOOSE },
@@ -232,6 +240,8 @@ class GameState {
 				this.getChangeTurn() : this).getEnterStage(stage);
 		}
 		if (this.stage == GameState.STAGE_VOWELS) {
+			if (this.puzzleIndex >= this.game.vowels.length - 1 && this.clueIndex >= 3)
+				return this.getEnterStage(GameState.STAGE_GAMEOVER);
 			if (this.substage == GameState.SUBSTAGE_CATEGORY)
 				return update(this, {
 					substage: { $set: GameState.SUBSTAGE_MAIN }
@@ -488,5 +498,6 @@ GameState.SUBSTAGE_SECONDARY = 1;
 GameState.SUBSTAGE_BUZZED = 2;
 GameState.SUBSTAGE_CATEGORY = 3;
 GameState.SUBSTAGE_CHOOSE = 4;
+GameState.STAGE_GAMEOVER = -1;
 
 export default GameState;

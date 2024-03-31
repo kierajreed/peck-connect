@@ -7,12 +7,19 @@ import ConnectionsPanel from './Connections.jsx';
 import ChoosePanel from './Choose.jsx';
 import WallPanel from './Wall.jsx';
 import VowelsPanel from './Vowels.jsx';
+import GameOverPanel from './GameOver.jsx';
 import GamepadsConfig from './GamepadsConfig.jsx';
 import GameData from '../game/GameData.js';
 import Mechanics from '../game/Mechanics.js';
 import GameState from '../game/GameState.js';
 import TimerUI from '../game/TimerUI.js';
 import SAMPLE_GAME from '../game/SampleGame.js';
+import _bwong_mp3 from '../../audio/bwong.mp3';
+
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const audioCtx = new AudioContext();
+let BWONG_AUDIO = new Audio(_bwong_mp3);
+console.log(BWONG_AUDIO)
 
 const CONNECTIONS_TIMEOUT = 40 * 1000;
 const WALL_TIMEOUT = 2.5 * 60 * 1000;
@@ -79,6 +86,8 @@ class GameUI extends Component {
 		this.handleGamepadDisconnected = this.handleGamepadDisconnected.bind(this);
 
 		this.onFrameId = null;
+
+		BWONG_AUDIO.load();
 	}
 	componentDidMount() {
 		this.onFrameId = window.requestAnimationFrame(this.onFrame);
@@ -204,6 +213,10 @@ class GameUI extends Component {
 			state.game.getChoose(index)
 		}}));
 	}
+	playBwong() {
+		BWONG_AUDIO.currentTime = 0; 
+		BWONG_AUDIO.play();
+	}
 	handleTimerChange(e) {
 		const newVal = e.target.value;
 		const isValid = TimerUI.ParseText(newVal) != null;
@@ -219,6 +232,7 @@ class GameUI extends Component {
 		}}));
 	}
 	handleTimerStop(e) {
+		this.playBwong();
 		e.target.blur();
 		this.setState((state) => update(state, { game: { $set:
 			state.game.getStopTimer()
@@ -262,12 +276,14 @@ class GameUI extends Component {
 		}}));
 	}
 	handleLeft(e) {
+		this.playBwong();
 		e.target.blur();
 		this.setState((state) => update(state, { game: { $set:
 			state.game.getBuzz(0)
 		}}));
 	}
 	handleRight(e) {
+		this.playBwong();
 		e.target.blur();
 		this.setState((state) => update(state, { game: { $set:
 			state.game.getBuzz(1)
@@ -377,6 +393,8 @@ class GameUI extends Component {
 				<ConnectionsPanel data={(stage == GameState.STAGE_CONNECTIONS) ? game.game.connections[game.puzzleIndex] : game.game.sequences[game.puzzleIndex]} index={game.clueIndex} progressVal={progressVal} isRevealed={game.isRevealed} isActive={isActive} />
 			: (stage == GameState.STAGE_VOWELS) ?
 				<VowelsPanel data={game.game.vowels[game.puzzleIndex]} index={game.clueIndex} isRevealed={game.isRevealed} showPuzzle={substage != GameState.SUBSTAGE_CATEGORY} />
+			: (stage == GameState.STAGE_GAMEOVER) ?
+				<GameOverPanel teams={game.teams}/>
 			: null;
 
 		const correctWrongDisabled = !game.isCorrectWrongEnabled();

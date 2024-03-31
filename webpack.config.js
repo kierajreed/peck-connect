@@ -23,6 +23,9 @@ module.exports = {
 					outputPath: 'fonts/'
 				}
 			}]
+		}, {
+			test: /\.mp3$/,
+			type: 'asset/inline'
 		}]
 	},
 	plugins: [
