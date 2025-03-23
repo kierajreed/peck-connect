@@ -33,6 +33,7 @@ class GameState {
 			wrongGuessPenalty: null
 		};
 		this.chosen = [];
+		this.winningTeam = -1;
 	}
 	getChangeTeamName(teamId, newVal) {
 		return update(this, {
@@ -179,7 +180,7 @@ class GameState {
 			return this.substage == GameState.SUBSTAGE_BUZZED ||
 				this.substage == GameState.SUBSTAGE_SECONDARY;
 		if (this.stage == GameState.STAGE_GAMEOVER)
-			return true;
+			return false;
 		console.error(`unrecognized stage ${this.stage}`);
 		return false;
 	}
@@ -193,10 +194,14 @@ class GameState {
 			return update(this, {
 				stage: { $set: stage }
 			}).getStartRound(0);
-		if (stage == GameState.STAGE_GAMEOVER)
+		if (stage == GameState.STAGE_GAMEOVER) {
+			let winnerwinnerchickendinner = this.teams[0].score > this.teams[1].score ? 0 : 
+											(this.teams[1].score > this.teams[0].score ? 1 : -1);
 			return update(this, {
-				stage: { $set: stage }
+				stage: { $set: stage },
+				winningTeam: { $set: winnerwinnerchickendinner }
 			});
+		}
 		return update(this.getResetMicro(0), {
 			stage: { $set: stage },
 			substage: { $set: GameState.SUBSTAGE_CHOOSE },

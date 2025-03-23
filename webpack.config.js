@@ -25,7 +25,7 @@ module.exports = {
 			}]
 		}, {
 			test: /\.mp3$/,
-			type: 'asset/inline'
+			type: "asset/resource"
 		}]
 	},
 	plugins: [

@@ -15,11 +15,7 @@ import GameState from '../game/GameState.js';
 import TimerUI from '../game/TimerUI.js';
 import SAMPLE_GAME from '../game/SampleGame.js';
 import _bwong_mp3 from '../../audio/bwong.mp3';
-
-const AudioContext = window.AudioContext || window.webkitAudioContext;
-const audioCtx = new AudioContext();
-let BWONG_AUDIO = new Audio(_bwong_mp3);
-console.log(BWONG_AUDIO)
+import _bwing_mp3 from '../../audio/bwing.mp3';
 
 const CONNECTIONS_TIMEOUT = 40 * 1000;
 const WALL_TIMEOUT = 2.5 * 60 * 1000;
@@ -87,7 +83,56 @@ class GameUI extends Component {
 
 		this.onFrameId = null;
 
-		BWONG_AUDIO.load();
+		const handler_noop = {target: {blur: ()=>{}}};
+		document.addEventListener('keydown', e => {
+			if(this.state.game.substage == GameState.SUBSTAGE_CHOOSE) {
+				switch(e.key) {
+					case 'q':
+						this.handleChooseClick(0);
+						break;
+					case 'w':
+						this.handleChooseClick(1);
+						break;
+					case 'e':
+						this.handleChooseClick(2);
+						break;
+					case 'a':
+						this.handleChooseClick(3);
+						break;
+					case 's':
+						this.handleChooseClick(4);
+						break;
+					case 'd':
+						this.handleChooseClick(5);
+						break;
+				}
+			}
+
+			if(this.state.game.timer.isRunning()) {
+				if(e.key == ' ') {
+					e.preventDefault();
+					this.handleTimerStop(handler_noop);
+				}
+			}
+
+			if(this.state.game.isNextEnabled()) {
+				if(e.key == 'Enter') this.handleNext(handler_noop);
+			}
+
+			if(this.state.game.isBackEnabled()) {
+				if(e.key == 'Backspace') this.handleBack(handler_noop);
+			}
+
+			if(this.state.game.isCorrectWrongEnabled()) {
+				if(e.key == ',') this.handleCorrect(handler_noop);
+				if(e.key == '.') this.handleWrong(handler_noop);
+			}
+
+			if(this.state.game.isLeftRightEnabled()) {
+				if(e.key == 'ArrowLeft') this.handleLeft(handler_noop);
+				if(e.key == 'ArrowRight') this.handleRight(handler_noop);
+			}
+		});
 	}
 	componentDidMount() {
 		this.onFrameId = window.requestAnimationFrame(this.onFrame);
@@ -214,8 +259,11 @@ class GameUI extends Component {
 		}}));
 	}
 	playBwong() {
-		BWONG_AUDIO.currentTime = 0; 
-		BWONG_AUDIO.play();
+		if(this.state.game.stage == GameState.STAGE_WALL || this.state.game.stage == GameState.STAGE_VOWELS) return;
+		new Audio(_bwong_mp3).play();
+	}
+	playBwing() {
+		new Audio(_bwing_mp3).play();
 	}
 	handleTimerChange(e) {
 		const newVal = e.target.value;
@@ -276,14 +324,14 @@ class GameUI extends Component {
 		}}));
 	}
 	handleLeft(e) {
-		this.playBwong();
+		this.playBwing();
 		e.target.blur();
 		this.setState((state) => update(state, { game: { $set:
 			state.game.getBuzz(0)
 		}}));
 	}
 	handleRight(e) {
-		this.playBwong();
+		this.playBwing();
 		e.target.blur();
 		this.setState((state) => update(state, { game: { $set:
 			state.game.getBuzz(1)
@@ -341,7 +389,7 @@ class GameUI extends Component {
 				!(stage == GameState.STAGE_VOWELS &&
 					(substage == GameState.SUBSTAGE_CATEGORY ||
 					substage == GameState.SUBSTAGE_MAIN)) &&
-				i == game.turn;
+				(stage == GameState.STAGE_GAMEOVER ? i == game.winningTeam : i == game.turn);
 			teamCards.push(<TeamCard
 				key={i}
 				name={game.teams[i].name}
@@ -394,7 +442,7 @@ class GameUI extends Component {
 			: (stage == GameState.STAGE_VOWELS) ?
 				<VowelsPanel data={game.game.vowels[game.puzzleIndex]} index={game.clueIndex} isRevealed={game.isRevealed} showPuzzle={substage != GameState.SUBSTAGE_CATEGORY} />
 			: (stage == GameState.STAGE_GAMEOVER) ?
-				<GameOverPanel teams={game.teams}/>
+				<GameOverPanel teams={game.teams} winningTeam={game.winningTeam}/>
 			: null;
 
 		const correctWrongDisabled = !game.isCorrectWrongEnabled();
@@ -430,6 +478,7 @@ class GameUI extends Component {
 					</button>
 				</div>
 			);
+		
 		const modal = this.state.showConfig ? [
 			<div key="modal" className="modal" style={{
 				display: 'block'
@@ -486,17 +535,7 @@ class GameUI extends Component {
 			</div>
 			] : null;
 
-		return (
-		<div className="container text-center d-flex flex-column" style={{
-			maxWidth: '1000px',
-			padding: '20px 35px 10px 35px',
-			height: '100%'
-		}}>
-			{modal}
-			<div className="row">
-				{teamCards}
-			</div>
-			{panel}
+		const footer = stage != GameState.STAGE_GAMEOVER ? [
 			<footer className="">
 				<div className="btn-toolbar w-100">
 					<div className="btn-group mr-2">
@@ -541,7 +580,26 @@ class GameUI extends Component {
 						</button>
 					</div>
 				</div>
+			</footer>] : [
+			<footer>
+				<div>
+					Thanks for playing!
+				</div>
 			</footer>
+		];
+		
+		return (
+		<div className="container text-center d-flex flex-column" style={{
+			maxWidth: '1000px',
+			padding: '20px 35px 10px 35px',
+			height: '100%'
+		}}>
+			{modal}
+			<div className="row">
+				{teamCards}
+			</div>
+			{panel}
+			{footer}
 		</div>
 		);
 	}
