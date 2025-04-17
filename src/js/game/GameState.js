@@ -2,6 +2,10 @@ import update from 'immutability-helper';
 import TimerUI from './TimerUI.js';
 import Mechanics from '../game/Mechanics.js';
 import SAMPLE_GAME from '../game/SampleGame.js';
+import _bed_45 from '../../audio/solving45.mp3';
+import _bed_60 from '../../audio/solving60.mp3';
+import _bed_180 from '../../audio/solving180.mp3';
+import _bed_210 from '../../audio/solving210.mp3';
 
 const CONNECTIONS_TIMEOUT = 40 * 1000;
 const WALL_TIMEOUT = 2.5 * 60 * 1000;
@@ -34,6 +38,7 @@ class GameState {
 		};
 		this.chosen = [];
 		this.winningTeam = -1;
+		this.bedAudio = null;
 	}
 	getChangeTeamName(teamId, newVal) {
 		return update(this, {
@@ -74,6 +79,7 @@ class GameState {
 	}
 	getResetTimer() {
 		const timeout = this.getTimeout();
+		this.stopBed();
 		return update(this, {
 			timer: { $set: new TimerUI(timeout) }
 		});
@@ -88,6 +94,7 @@ class GameState {
 	getStopTimer() {
 		if (!this.timer.isRunning())
 			return this;
+		this.stopBed();
 		return update(this, {
 			timer: { $set: this.timer.getStop() }
 		});
@@ -195,6 +202,7 @@ class GameState {
 				stage: { $set: stage }
 			}).getStartRound(0);
 		if (stage == GameState.STAGE_GAMEOVER) {
+			this.stopBed();
 			let winnerwinnerchickendinner = this.teams[0].score > this.teams[1].score ? 0 : 
 											(this.teams[1].score > this.teams[0].score ? 1 : -1);
 			return update(this, {
@@ -215,11 +223,32 @@ class GameState {
 		if (!this.chosen.includes(puzzleIndex))
 			chosen.push(puzzleIndex);
 		const timeout = this.getTimeout();
+		const noBed = (this.stage == GameState.STAGE_CONNECTIONS && this.game.connections[puzzleIndex].data[0].audio) ||
+			(this.stage == GameState.STAGE_SEQUENCES && this.game.sequences[puzzleIndex].data[0].audio);
+		const newBedAudio = noBed ? null : this.startBed(timeout/1000);
 		return update(this.getResetMicro(timeout).getStartTimer(), {
 			substage: { $set: substage },
 			puzzleIndex: { $set: puzzleIndex },
-			chosen: { $set: chosen }
+			chosen: { $set: chosen },
+			bedAudio: { $set: newBedAudio }
 		});
+	}
+	startBed(timeoutSec) {
+		let audio;
+		if(timeoutSec <= 45) {
+			audio = new Audio(_bed_45);
+		} else if(timeoutSec <= 60) {
+			audio = new Audio(_bed_60);
+		} else if(timeoutSec <= 180) {
+			audio = new Audio(_bed_180);
+		} else {
+			audio = new Audio(_bed_210);
+		}
+		audio.play();
+		return audio;
+	}
+	stopBed() {
+		if(this.bedAudio != null) this.bedAudio.pause();
 	}
 	static GetCompleteFound(prevFound) {
 		const found = prevFound.slice(0);
