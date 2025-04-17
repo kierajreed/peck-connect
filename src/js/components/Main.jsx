@@ -85,6 +85,7 @@ class GameUI extends Component {
 
 		const handler_noop = {target: {blur: ()=>{}}};
 		document.addEventListener('keydown', e => {
+			if(document.activeElement.type=="text") return;
 			if(this.state.game.substage == GameState.SUBSTAGE_CHOOSE) {
 				switch(e.key) {
 					case 'q':
