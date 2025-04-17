@@ -6,6 +6,10 @@ import _bed_45 from '../../audio/solving45.mp3';
 import _bed_60 from '../../audio/solving60.mp3';
 import _bed_180 from '../../audio/solving180.mp3';
 import _bed_210 from '../../audio/solving210.mp3';
+import _wallClick from '../../audio/wallBtnClick.mp3';
+import _wallWrong from '../../audio/incorrectGroup.mp3';
+import _wallLoseLife from '../../audio/loseLife.mp3';
+import _flurry from '../../audio/ocFlurry.mp3';
 
 const CONNECTIONS_TIMEOUT = 40 * 1000;
 const WALL_TIMEOUT = 2.5 * 60 * 1000;
@@ -95,6 +99,7 @@ class GameState {
 		if (!this.timer.isRunning())
 			return this;
 		this.stopBed();
+		if(this.stage == GameState.STAGE_WALL) new Audio(_flurry).play();
 		return update(this, {
 			timer: { $set: this.timer.getStop() }
 		});
@@ -203,6 +208,7 @@ class GameState {
 			}).getStartRound(0);
 		if (stage == GameState.STAGE_GAMEOVER) {
 			this.stopBed();
+			new Audio(_flurry).play();
 			let winnerwinnerchickendinner = this.teams[0].score > this.teams[1].score ? 0 : 
 											(this.teams[1].score > this.teams[0].score ? 1 : -1);
 			return update(this, {
@@ -453,6 +459,8 @@ class GameState {
 		// Allow players to make selections indefinitely.
 		if (this.getTimeout() != 0 && this.timer.isExpired())
 			return this;
+
+		new Audio(_wallClick).play();
 		const selected = this.wall.selected.slice(0);
 		const arrPos = selected.indexOf(index);
 		if (arrPos == -1)
@@ -482,7 +490,10 @@ class GameState {
 					wallPoints: { $set: this.wall.wallPoints + inc }
 				}
 			});
+		} else {
+			new Audio(this.wall.found.length == 2 ? _wallLoseLife : _wallWrong).play();
 		}
+
 		const strikes = (this.wall.found.length == 2) ?
 			(this.wall.strikes + 1) : this.wall.strikes;
 		return update(
